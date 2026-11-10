@@ -3,7 +3,8 @@ __pycache__/
 *.pyc
 .DS_Store
 out/
-results/
+results/*
+!results/vectors-v0/
 datasets/
 *.jsonl
 *.png

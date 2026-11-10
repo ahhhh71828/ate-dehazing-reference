@@ -1,0 +1,87 @@
+# ate_vectors v0｜schedule.hex｜排程：每張 frame 統計時、除霧時與下一張的參數，以及主路徑向量的範圍
+# schema schedule.v0
+# status 軟體 reference v0 的預期答案；不是團隊選定的硬體格式，B、T 未選定，RTL 未驗證
+# generator ate_vectors.py sha256=6f5ac158e51ad5b7b5e5d6f4a18394d13be657c621f17450f7524fc1e4bb4265
+# source ate_golden.py sha256=21847733933808f89fb74843072d6db7f502ec0fd43552e01fb065d031e6b6e3
+# source ate_pte_lut.py sha256=907c854785f2596bb49eb84fe62c684088bb894807d2e3eb47bb1e6f7b18992c
+# config F=20 T=10 tie=first th_round=floor sd_lut_K=10 pte_lut_Kr=23 pte_lut_L=17 pte_lut_B=8,10 omega=15/16 gamma=2 active0=T_h:128,A_F:FF.FF.FF,A_N:FF.FF.FF,measured:0
+# encoding 文字 hex（大寫）、單一空白分隔、每欄固定位數、UTF-8、LF；signed 欄是 4×digits bit 的二補數；invalid 欄寫成全 F（全 F 不在合法範圍內）；以 # 開頭的是檔頭
+# code mode 0=static：stat_ 是 active0，use_ 等於 next_（CPU 更新後第二次讀取除霧）
+# code mode 1=video：frame n 的 stat_ 等於 use_；use_(n) 等於 next_(n−1)
+# frame 00 SA21 21x21：21×21 隨機 0–255
+# frame 01 SB2017 20x17：20×17 隨機 1–255；(18,15) = (1,2,3)；(19,15)、(18,16) = 250
+# frame 02 C120 9x9：9×9 單色 (120,130,140)
+# frame 03 D13 13x13：13×13 案例 d（並列）
+# frame 04 E15 15x15：15×15 單色 (50,60,70)，降採樣 (2,2) = (0,90,90)
+# frame 05 C123 9x9：9×9 單色 (123,130,140)
+# frame 06 C127 9x9：9×9 單色 (127,130,140)
+# frame 07 G130 9x9：9×9 單色 (130,130,130)
+# frame 08 B100 9x9：9×9 單色 (100,110,120)
+# frame 09 X15 15x9：15×9 兩區：列 0–5 = Q (60,70,80)、列 6–14 = P (120,125,130)
+# frame 0A RND21 21x21：21×21：列 0–11 隨機 140–255、列 12–20 隨機 0–255
+# case 50 VS2：video：近群差 3／差 4（9×9 單色 × 4）（來源：ate_golden 排程 S2）
+# case 51 VS3：video：遠群變空、近群逐張收斂（9×9 單色 × 6）（來源：ate_golden 排程 S3）
+# case 52 VX15：video：兩區 15×9 × 7（兩群都有、近群 step 4 收斂）（來源：ate_golden 排程 S6 的 A 序列（影像縮成 15×9，T_h 手算 103））
+# case 53 SS4：static：9×9 單色（A = I → 輸出 = 輸入）（來源：ate_golden 排程 S4）
+# case 54 SX15：static：兩區 15×9（第一次讀取用 active0 的 T_h 128 分群）（來源：ate_golden 排程 S5 的觀念（影像縮成 15×9））
+# case 55 SRND：static：21×21 上方亮區＋下方隨機（兩群都有，PALA 混合）（來源：本檔合成（seed 20261110））
+# field case_id digits=2 bits=8 signed=0 min=0 max=254 invalid=- scale=- : 案例編號（檔頭的 case 行）
+# field seq digits=2 bits=8 signed=0 min=0 max=254 invalid=FF/none scale=- : 排程中的 frame 順序（0 起；靜態排程只有 0）；單元案例為全 F
+# field mode digits=1 bits=4 signed=0 min=0 max=1 invalid=- scale=- : 0 = static（第一次讀取只統計，第二次讀取除霧）；1 = video
+# field frame_id digits=2 bits=8 signed=0 min=0 max=254 invalid=- scale=- : 影像編號（frames.hex 檔頭的 frame 行）
+# field stats_id digits=2 bits=8 signed=0 min=0 max=254 invalid=- scale=- : 統計 pass 編號（stats.hex）
+# field upd_id digits=2 bits=8 signed=0 min=0 max=254 invalid=- scale=- : CPU 更新編號（cpu.hex）
+# field vec0 digits=4 bits=16 signed=0 min=0 max=65534 invalid=- scale=- : 本張主路徑的第一個 vec_id
+# field nvec digits=4 bits=16 signed=0 min=1 max=65534 invalid=- scale=- : 本張主路徑的向量數 = H·W（vec_id 連續）
+# field stat_measured digits=1 bits=4 signed=0 min=0 max=1 invalid=- scale=- : 統計時的 active：1 = 量測值；0 = active0 預設（第一次更新不做 step 4）
+# field stat_t_h digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 統計時的 active：T_h
+# field stat_AF_R digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 統計時的 active：A_F R
+# field stat_AF_G digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 統計時的 active：A_F G
+# field stat_AF_B digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 統計時的 active：A_F B
+# field stat_AN_R digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 統計時的 active：A_N R
+# field stat_AN_G digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 統計時的 active：A_N G
+# field stat_AN_B digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 統計時的 active：A_N B
+# field stat_I_max digits=3 bits=12 signed=0 min=0 max=765 invalid=- scale=1 : 統計時的 active：I_max = A_F 三色和
+# field stat_inv_q digits=6 bits=24 signed=0 min=0 max=1048576 invalid=- scale=2^-20 : 統計時的 active：floor(2^20 / I_max)，I_max = 0 時 0；1/I_max = inv_q·2^-20
+# field use_measured digits=1 bits=4 signed=0 min=0 max=1 invalid=- scale=- : 除霧時的 active：1 = 量測值；0 = active0 預設（第一次更新不做 step 4）
+# field use_t_h digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 除霧時的 active：T_h
+# field use_AF_R digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 除霧時的 active：A_F R
+# field use_AF_G digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 除霧時的 active：A_F G
+# field use_AF_B digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 除霧時的 active：A_F B
+# field use_AN_R digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 除霧時的 active：A_N R
+# field use_AN_G digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 除霧時的 active：A_N G
+# field use_AN_B digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 除霧時的 active：A_N B
+# field use_I_max digits=3 bits=12 signed=0 min=0 max=765 invalid=- scale=1 : 除霧時的 active：I_max = A_F 三色和
+# field use_inv_q digits=6 bits=24 signed=0 min=0 max=1048576 invalid=- scale=2^-20 : 除霧時的 active：floor(2^20 / I_max)，I_max = 0 時 0；1/I_max = inv_q·2^-20
+# field next_measured digits=1 bits=4 signed=0 min=0 max=1 invalid=- scale=- : 下一個 active：1 = 量測值；0 = active0 預設（第一次更新不做 step 4）
+# field next_t_h digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 下一個 active：T_h
+# field next_AF_R digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 下一個 active：A_F R
+# field next_AF_G digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 下一個 active：A_F G
+# field next_AF_B digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 下一個 active：A_F B
+# field next_AN_R digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 下一個 active：A_N R
+# field next_AN_G digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 下一個 active：A_N G
+# field next_AN_B digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 下一個 active：A_N B
+# field next_I_max digits=3 bits=12 signed=0 min=0 max=765 invalid=- scale=1 : 下一個 active：I_max = A_F 三色和
+# field next_inv_q digits=6 bits=24 signed=0 min=0 max=1048576 invalid=- scale=2^-20 : 下一個 active：floor(2^20 / I_max)，I_max = 0 時 0；1/I_max = inv_q·2^-20
+# columns case_id seq mode frame_id stats_id upd_id vec0 nvec stat_measured stat_t_h stat_AF_R stat_AF_G stat_AF_B stat_AN_R stat_AN_G stat_AN_B stat_I_max stat_inv_q use_measured use_t_h use_AF_R use_AF_G use_AF_B use_AN_R use_AN_G use_AN_B use_I_max use_inv_q next_measured next_t_h next_AF_R next_AF_G next_AF_B next_AN_R next_AN_G next_AN_B next_I_max next_inv_q
+# rows 20
+50 00 1 02 06 07 002F 0051 0 80 FF FF FF FF FF FF 2FD 00055A 0 80 FF FF FF FF FF FF 2FD 00055A 1 82 78 82 8C 78 82 8C 186 000A80
+50 01 1 05 07 08 0080 0051 1 82 78 82 8C 78 82 8C 186 000A80 1 82 78 82 8C 78 82 8C 186 000A80 1 83 78 82 8C 7B 82 8C 186 000A80
+50 02 1 06 08 09 00D1 0051 1 83 78 82 8C 7B 82 8C 186 000A80 1 83 78 82 8C 7B 82 8C 186 000A80 1 84 78 82 8C 7D 82 8C 186 000A80
+50 03 1 06 09 0A 0122 0051 1 84 78 82 8C 7D 82 8C 186 000A80 1 84 78 82 8C 7D 82 8C 186 000A80 1 84 78 82 8C 7F 82 8C 186 000A80
+51 00 1 07 0A 0B 0173 0051 0 80 FF FF FF FF FF FF 2FD 00055A 0 80 FF FF FF FF FF FF 2FD 00055A 1 82 82 82 82 82 82 82 186 000A80
+51 01 1 07 0B 0C 01C4 0051 1 82 82 82 82 82 82 82 186 000A80 1 82 82 82 82 82 82 82 186 000A80 1 82 82 82 82 82 82 82 186 000A80
+51 02 1 08 0C 0D 0215 0051 1 82 82 82 82 82 82 82 186 000A80 1 82 82 82 82 82 82 82 186 000A80 1 6E 82 82 82 73 78 7D 186 000A80
+51 03 1 08 0D 0E 0266 0051 1 6E 82 82 82 73 78 7D 186 000A80 1 6E 82 82 82 73 78 7D 186 000A80 1 6E 82 82 82 6B 73 7A 186 000A80
+51 04 1 08 0E 0F 02B7 0051 1 6E 82 82 82 6B 73 7A 186 000A80 1 6E 82 82 82 6B 73 7A 186 000A80 1 6E 82 82 82 67 70 79 186 000A80
+51 05 1 08 0F 10 0308 0051 1 6E 82 82 82 67 70 79 186 000A80 1 6E 82 82 82 67 70 79 186 000A80 1 6E 82 82 82 64 6E 78 186 000A80
+52 00 1 09 10 11 0359 0087 0 80 FF FF FF FF FF FF 2FD 00055A 0 80 FF FF FF FF FF FF 2FD 00055A 1 67 78 7D 82 78 7D 82 177 000AEC
+52 01 1 09 11 12 03E0 0087 1 67 78 7D 82 78 7D 82 177 000AEC 1 67 78 7D 82 78 7D 82 177 000AEC 1 67 78 7D 82 5A 61 69 177 000AEC
+52 02 1 09 12 13 0467 0087 1 67 78 7D 82 5A 61 69 177 000AEC 1 67 78 7D 82 5A 61 69 177 000AEC 1 67 78 7D 82 4B 53 5C 177 000AEC
+52 03 1 09 13 14 04EE 0087 1 67 78 7D 82 4B 53 5C 177 000AEC 1 67 78 7D 82 4B 53 5C 177 000AEC 1 67 78 7D 82 43 4C 56 177 000AEC
+52 04 1 09 14 15 0575 0087 1 67 78 7D 82 43 4C 56 177 000AEC 1 67 78 7D 82 43 4C 56 177 000AEC 1 67 78 7D 82 3F 49 53 177 000AEC
+52 05 1 09 15 16 05FC 0087 1 67 78 7D 82 3F 49 53 177 000AEC 1 67 78 7D 82 3F 49 53 177 000AEC 1 67 78 7D 82 3C 46 50 177 000AEC
+52 06 1 09 16 17 0683 0087 1 67 78 7D 82 3C 46 50 177 000AEC 1 67 78 7D 82 3C 46 50 177 000AEC 1 67 78 7D 82 3C 46 50 177 000AEC
+53 00 0 08 17 18 070A 0051 0 80 FF FF FF FF FF FF 2FD 00055A 1 6E 64 6E 78 64 6E 78 14A 000C69 1 6E 64 6E 78 64 6E 78 14A 000C69
+54 00 0 09 18 19 075B 0087 0 80 FF FF FF FF FF FF 2FD 00055A 1 67 78 7D 82 78 7D 82 177 000AEC 1 67 78 7D 82 78 7D 82 177 000AEC
+55 00 0 0A 19 1A 07E2 01B9 0 80 FF FF FF FF FF FF 2FD 00055A 1 AB E1 91 C1 CE BE DE 233 000746 1 AB E1 91 C1 CE BE DE 233 000746

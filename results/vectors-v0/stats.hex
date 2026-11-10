@@ -1,0 +1,87 @@
+# ate_vectors v0｜stats.hex｜統計路徑：每次統計 pass 的摘要（gray_sum、遠近群代表點）
+# schema stats.v0
+# status 軟體 reference v0 的預期答案；不是團隊選定的硬體格式，B、T 未選定，RTL 未驗證
+# generator ate_vectors.py sha256=6f5ac158e51ad5b7b5e5d6f4a18394d13be657c621f17450f7524fc1e4bb4265
+# source ate_golden.py sha256=21847733933808f89fb74843072d6db7f502ec0fd43552e01fb065d031e6b6e3
+# source ate_pte_lut.py sha256=907c854785f2596bb49eb84fe62c684088bb894807d2e3eb47bb1e6f7b18992c
+# config F=20 T=10 tie=first th_round=floor sd_lut_K=10 pte_lut_Kr=23 pte_lut_L=17 pte_lut_B=8,10 omega=15/16 gamma=2 active0=T_h:128,A_F:FF.FF.FF,A_N:FF.FF.FF,measured:0
+# encoding 文字 hex（大寫）、單一空白分隔、每欄固定位數、UTF-8、LF；signed 欄是 4×digits bit 的二補數；invalid 欄寫成全 F（全 F 不在合法範圍內）；以 # 開頭的是檔頭
+# frame 00 SA21 21x21：21×21 隨機 0–255
+# frame 01 SB2017 20x17：20×17 隨機 1–255；(18,15) = (1,2,3)；(19,15)、(18,16) = 250
+# frame 02 C120 9x9：9×9 單色 (120,130,140)
+# frame 03 D13 13x13：13×13 案例 d（並列）
+# frame 04 E15 15x15：15×15 單色 (50,60,70)，降採樣 (2,2) = (0,90,90)
+# frame 05 C123 9x9：9×9 單色 (123,130,140)
+# frame 06 C127 9x9：9×9 單色 (127,130,140)
+# frame 07 G130 9x9：9×9 單色 (130,130,130)
+# frame 08 B100 9x9：9×9 單色 (100,110,120)
+# frame 09 X15 15x9：15×9 兩區：列 0–5 = Q (60,70,80)、列 6–14 = P (120,125,130)
+# frame 0A RND21 21x21：21×21：列 0–11 隨機 140–255、列 12–20 隨機 0–255
+# case 30 ST-A：21×21 隨機（降採樣 7×7，5×5 視窗內部；T_h = oracle dark 的中位數）（來源：ate_golden 案例 a 的作法（本檔 seed 20261110））
+# case 31 ST-B：20×17 隨機（尾端：降採樣 7×6；角落視窗補 255）（來源：ate_golden 案例 b 的作法（縮成 21 以內，本檔 seed 20261110））
+# case 32 ST-C：dark 恰好等於 T_h → 歸遠群；近群為空（來源：ate_golden 案例 c）
+# case 33 ST-D：遠群兩點並列最大，取 raster 第一個（來源：ate_golden 案例 d）
+# case 34 ST-E：近群最大 dark 為 0（仍 valid）；遠群為空（來源：ate_golden 案例 e）
+# case 35 ST-F：遠群為空（dark 120 < 121）（來源：ate_golden 案例 f）
+# case 50 VS2：video：近群差 3／差 4（9×9 單色 × 4）（來源：ate_golden 排程 S2）
+# case 51 VS3：video：遠群變空、近群逐張收斂（9×9 單色 × 6）（來源：ate_golden 排程 S3）
+# case 52 VX15：video：兩區 15×9 × 7（兩群都有、近群 step 4 收斂）（來源：ate_golden 排程 S6 的 A 序列（影像縮成 15×9，T_h 手算 103））
+# case 53 SS4：static：9×9 單色（A = I → 輸出 = 輸入）（來源：ate_golden 排程 S4）
+# case 54 SX15：static：兩區 15×9（第一次讀取用 active0 的 T_h 128 分群）（來源：ate_golden 排程 S5 的觀念（影像縮成 15×9））
+# case 55 SRND：static：21×21 上方亮區＋下方隨機（兩群都有，PALA 混合）（來源：本檔合成（seed 20261110））
+# field stats_id digits=2 bits=8 signed=0 min=0 max=254 invalid=- scale=- : 統計 pass 編號（stats.hex）
+# field case_id digits=2 bits=8 signed=0 min=0 max=254 invalid=- scale=- : 案例編號（檔頭的 case 行）
+# field seq digits=2 bits=8 signed=0 min=0 max=254 invalid=FF/none scale=- : 排程中的 frame 順序（0 起；靜態排程只有 0）；單元案例為全 F
+# field frame_id digits=2 bits=8 signed=0 min=0 max=254 invalid=- scale=- : 影像編號（frames.hex 檔頭的 frame 行）
+# field t_h_prev digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : 分群用的 T_h
+# field H digits=3 bits=12 signed=0 min=1 max=1080 invalid=- scale=1 : 原圖列數
+# field W digits=3 bits=12 signed=0 min=1 max=1920 invalid=- scale=1 : 原圖行數
+# field Hd digits=3 bits=12 signed=0 min=1 max=360 invalid=- scale=1 : 降採樣列數 ceil(H/3)
+# field Wd digits=3 bits=12 signed=0 min=1 max=640 invalid=- scale=1 : 降採樣行數 ceil(W/3)
+# field N digits=5 bits=20 signed=0 min=1 max=230400 invalid=- scale=1 : 降採樣點數 Hd·Wd
+# field gray_sum digits=7 bits=28 signed=0 min=0 max=176256000 invalid=- scale=1 : 降採樣點 R + G + B 的總和（28 bit 可容納 1080p 的 176256000）
+# field gray_mean digits=2 bits=8 signed=0 min=0 max=255 invalid=- scale=1 : floor(gray_sum / (3N))
+# field far_valid digits=1 bits=4 signed=0 min=0 max=1 invalid=- scale=- : 遠群是否有點（0 = 空群組）
+# field far_count digits=5 bits=20 signed=0 min=0 max=230400 invalid=- scale=1 : 遠群的點數
+# field far_max digits=3 bits=12 signed=0 min=0 max=255 invalid=FFF/none scale=1 : 遠群的最大 dark；空群組全 F
+# field far_i digits=3 bits=12 signed=0 min=0 max=359 invalid=FFF/none scale=- : 所選點的降採樣列（並列取 raster 第一個）；空群組全 F
+# field far_j digits=3 bits=12 signed=0 min=0 max=639 invalid=FFF/none scale=- : 所選點的降採樣行；空群組全 F
+# field far_R digits=3 bits=12 signed=0 min=0 max=255 invalid=FFF/none scale=1 : 所選點的 R；無效時全 F
+# field far_G digits=3 bits=12 signed=0 min=0 max=255 invalid=FFF/none scale=1 : 所選點的 G；無效時全 F
+# field far_B digits=3 bits=12 signed=0 min=0 max=255 invalid=FFF/none scale=1 : 所選點的 B；無效時全 F
+# field near_valid digits=1 bits=4 signed=0 min=0 max=1 invalid=- scale=- : 近群是否有點（0 = 空群組）
+# field near_count digits=5 bits=20 signed=0 min=0 max=230400 invalid=- scale=1 : 近群的點數
+# field near_max digits=3 bits=12 signed=0 min=0 max=255 invalid=FFF/none scale=1 : 近群的最大 dark；空群組全 F
+# field near_i digits=3 bits=12 signed=0 min=0 max=359 invalid=FFF/none scale=- : 所選點的降採樣列（並列取 raster 第一個）；空群組全 F
+# field near_j digits=3 bits=12 signed=0 min=0 max=639 invalid=FFF/none scale=- : 所選點的降採樣行；空群組全 F
+# field near_R digits=3 bits=12 signed=0 min=0 max=255 invalid=FFF/none scale=1 : 所選點的 R；無效時全 F
+# field near_G digits=3 bits=12 signed=0 min=0 max=255 invalid=FFF/none scale=1 : 所選點的 G；無效時全 F
+# field near_B digits=3 bits=12 signed=0 min=0 max=255 invalid=FFF/none scale=1 : 所選點的 B；無效時全 F
+# columns stats_id case_id seq frame_id t_h_prev H W Hd Wd N gray_sum gray_mean far_valid far_count far_max far_i far_j far_R far_G far_B near_valid near_count near_max near_i near_j near_R near_G near_B
+# rows 26
+00 30 FF 00 04 015 015 007 007 00031 0004C11 84 1 00025 017 005 000 0E5 0F4 095 1 0000C 000 000 004 061 08B 036
+01 31 FF 01 80 014 011 007 006 0002A 0003C31 7A 0 00000 FFF FFF FFF FFF FFF FFF 1 0002A 008 003 005 04C 0A9 043
+02 32 FF 02 78 009 009 003 003 00009 0000DB6 82 1 00009 078 000 000 078 082 08C 0 00000 FFF FFF FFF FFF FFF FFF
+03 33 FF 03 96 00D 00D 005 005 00019 0002904 8C 1 00002 0C8 000 000 0C8 0D2 0DC 1 00017 00A 000 001 0C8 0C8 0C8
+04 34 FF 04 01 00F 00F 005 005 00019 0001194 3C 0 00000 FFF FFF FFF FFF FFF FFF 1 00019 000 000 000 032 03C 046
+05 35 FF 02 79 009 009 003 003 00009 0000DB6 82 0 00000 FFF FFF FFF FFF FFF FFF 1 00009 078 000 000 078 082 08C
+06 50 00 02 80 009 009 003 003 00009 0000DB6 82 0 00000 FFF FFF FFF FFF FFF FFF 1 00009 078 000 000 078 082 08C
+07 50 01 05 82 009 009 003 003 00009 0000DD1 83 0 00000 FFF FFF FFF FFF FFF FFF 1 00009 07B 000 000 07B 082 08C
+08 50 02 06 83 009 009 003 003 00009 0000DF5 84 0 00000 FFF FFF FFF FFF FFF FFF 1 00009 07F 000 000 07F 082 08C
+09 50 03 06 84 009 009 003 003 00009 0000DF5 84 0 00000 FFF FFF FFF FFF FFF FFF 1 00009 07F 000 000 07F 082 08C
+0A 51 00 07 80 009 009 003 003 00009 0000DB6 82 1 00009 082 000 000 082 082 082 0 00000 FFF FFF FFF FFF FFF FFF
+0B 51 01 07 82 009 009 003 003 00009 0000DB6 82 1 00009 082 000 000 082 082 082 0 00000 FFF FFF FFF FFF FFF FFF
+0C 51 02 08 82 009 009 003 003 00009 0000B9A 6E 0 00000 FFF FFF FFF FFF FFF FFF 1 00009 064 000 000 064 06E 078
+0D 51 03 08 6E 009 009 003 003 00009 0000B9A 6E 0 00000 FFF FFF FFF FFF FFF FFF 1 00009 064 000 000 064 06E 078
+0E 51 04 08 6E 009 009 003 003 00009 0000B9A 6E 0 00000 FFF FFF FFF FFF FFF FFF 1 00009 064 000 000 064 06E 078
+0F 51 05 08 6E 009 009 003 003 00009 0000B9A 6E 0 00000 FFF FFF FFF FFF FFF FFF 1 00009 064 000 000 064 06E 078
+10 52 00 09 80 00F 009 005 003 0000F 000121B 67 0 00000 FFF FFF FFF FFF FFF FFF 1 0000F 078 004 000 078 07D 082
+11 52 01 09 67 00F 009 005 003 0000F 000121B 67 1 00003 078 004 000 078 07D 082 1 0000C 03C 000 000 03C 046 050
+12 52 02 09 67 00F 009 005 003 0000F 000121B 67 1 00003 078 004 000 078 07D 082 1 0000C 03C 000 000 03C 046 050
+13 52 03 09 67 00F 009 005 003 0000F 000121B 67 1 00003 078 004 000 078 07D 082 1 0000C 03C 000 000 03C 046 050
+14 52 04 09 67 00F 009 005 003 0000F 000121B 67 1 00003 078 004 000 078 07D 082 1 0000C 03C 000 000 03C 046 050
+15 52 05 09 67 00F 009 005 003 0000F 000121B 67 1 00003 078 004 000 078 07D 082 1 0000C 03C 000 000 03C 046 050
+16 52 06 09 67 00F 009 005 003 0000F 000121B 67 1 00003 078 004 000 078 07D 082 1 0000C 03C 000 000 03C 046 050
+17 53 00 08 80 009 009 003 003 00009 0000B9A 6E 0 00000 FFF FFF FFF FFF FFF FFF 1 00009 064 000 000 064 06E 078
+18 54 00 09 80 00F 009 005 003 0000F 000121B 67 0 00000 FFF FFF FFF FFF FFF FFF 1 0000F 078 004 000 078 07D 082
+19 55 00 0A 80 015 015 007 007 00031 000628B AB 1 0000E 091 000 003 0E1 091 0C1 1 00023 02F 002 000 0CE 0BE 0DE

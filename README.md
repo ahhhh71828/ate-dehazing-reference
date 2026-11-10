@@ -1,6 +1,6 @@
 # ate-dehazing-reference
 
-除霧論文（Upadhyay & Sarawadekar, IEEE TVLSI 2026）的 Python 軟體 reference v0，以及 PTE 查表的候選版本。之後要用來和 RTL、ISR 逐值比對；目前還沒有測試向量的匯出（第 1 節）。
+除霧論文（Upadhyay & Sarawadekar, IEEE TVLSI 2026）的 Python 軟體 reference v0，以及 PTE 查表的候選版本。之後要用來和 RTL、ISR 逐值比對；本版附上軟體 v0 的測試向量（第 8 節）。
 
 > **注意**
 > - 數值規則都是暫定值，尚未經組內確認；本版實際使用的規則列在第 7 節。
@@ -16,10 +16,12 @@
   - 在 O-HAZE 的 45 組照片上，比較 FX 組合（第 6.2 節）和把 PTE 換成查表（B = 8、10）之後的輸出與畫質。45 組都已完成。
   - 驗證結果：45 組的 t 差都沒有超過上限。上限是事先定好的門檻，不是量到的值：B = 8 時 3、B = 10 時 1（t 以 1/1024 為單位）。
   - 評估工具和結果沒有放進本 repo，這一版也不附評估數字。
+- 2026-11-10 加上軟體 v0 的測試向量：`ate_vectors.py` 與 `results/vectors-v0/` 的 9 個檔（第 8 節）。它只呼叫既有的計算函式，不改演算法。
 - B = 8、10 仍然是候選，還沒有選定。
-- 現在可以使用：建立環境、selfcheck、單張影像的浮點與定點計算、PTE 查表候選和 FX 的比較、O-HAZE 的配對檢查。
+- 現在可以使用：建立環境、selfcheck、單張影像的浮點與定點計算、PTE 查表候選和 FX 的比較、O-HAZE 的配對檢查、軟體 v0 的測試向量。
 - 後續工作，本版沒有：
-  - 匯出測試向量（中間值與輸出的格式還沒決定）。
+  - 測試向量的格式經組員確認；需要時再調整。
+  - DRAM 的 24-bit packed 格式。
   - 和 RTL 逐值對齊。
 
 ## 2. 快速開始
@@ -206,13 +208,54 @@ uv run --locked python -B ate_pte_lut.py compare 影像.jpg
 - B 用 8 還是 10。
 - 硬體的 t 小數位數 T。FX 組合用 10，W4 本身還沒定。
 - 第 7.1、7.2 節的所有規則。L1、L2 若改變，FX 與查表版的比較要重做。
-- 測試向量的格式，以及先對影片還是靜態排程。
+- 測試向量的格式（第 8 節是軟體這邊先定的版本），以及先對影片還是靜態排程。
 
-## 8. 選用：資料集
+## 8. 測試向量（軟體 v0）
+
+`results/vectors-v0/` 的 9 個文字檔，是本版軟體 reference 在小型合成影像（最大 21×21）上的預期答案。之後讓 RTL、ISR 的 testbench 讀進來逐值比對。
+
+- 格式是軟體這邊先定的，還沒經組員確認；B、T 也還沒選定（第 7.3 節）。
+- 設定固定：FX 組合（第 6.2 節）、並列取第一個、下一張 T_h 取 floor。
+- PTE 有三套答案：精確整數除法（EX）、查表 B = 8、查表 B = 10。SD 有理想整數版和直接 LUT 兩套。各版分開標示，同一個 pixel 的各版用同一份輸入。
+- RGB 分欄、一個 pixel 一行，不是 DRAM 的 24-bit packed 格式。
+
+### 8.1 檔案
+
+| 檔案 | 內容 |
+|---|---|
+| `frames.hex` | 合成輸入影像 |
+| `stats_pixels.hex` | 統計路徑：每個降採樣點的 RGB、最小值、dark 與分群 |
+| `stats.hex` | 每次統計的摘要：gray_sum、遠群與近群的代表點 |
+| `cpu.hex` | CPU 更新：上一組參數、本張統計值、step 4、下一組參數 |
+| `schedule.hex` | 排程：每張 frame 統計時、除霧時與下一張的參數（靜態與影片） |
+| `pala.hex` | PALA：1/I_max、eta_q、A_q |
+| `pte.hex` | PTE：EX、B = 8、B = 10 |
+| `sd.hex` | SD：理想整數版與直接 LUT |
+| `lut.hex` | 查表內容：PTE 的 ratio 表與 I/A 表（B = 8、10）、SD 的 1/t 表 |
+
+讀法：
+
+- `#` 開頭的是檔頭：產生它的程式版本（SHA-256）、設定、代碼表、案例，以及每一欄的位數、有無正負號、範圍、無效值寫法與 scale。欄位順序在 `# columns` 那一行。
+- 其餘每一行是一筆資料：大寫 hex，欄位間一個空白，每一欄的位數固定；無效值寫成全 F。
+- `vec_id` 連接 pala、pte、sd；`stats_id`、`upd_id` 連接 stats、stats_pixels、cpu、schedule；`frame_id`、`row`、`col` 對到 frames.hex。
+
+### 8.2 檢查
+
+在 repo 資料夾執行，三個系統通用：
+
+| 指令 | 應該看到 |
+|---|---|
+| `uv run --locked python -B ate_vectors.py verify` | 最後一行是 `結果：32/32 PASS`：重新計算的結果和 repo 裡的 9 個檔逐 byte 相同，而且通過全部檢查；不寫檔 |
+| `uv run --locked python -B ate_vectors.py selfcheck` | 最後一行是 `結果：32/32 PASS`；只在記憶體計算，不寫檔 |
+
+- `uv run --locked python -B ate_vectors.py write` 會覆寫這 9 個檔，只有程式改了才需要。
+- 2026-11-10 只在作者的開發環境跑過；乾淨環境還沒試。
+
+## 9. 選用：資料集
 
 只有要做畫質評估時才需要。資料集的授權還沒查清楚：請各自下載，不要再傳給別人，也不要放進 repo。
 
-### 8.1 O-HAZE（45 組室外有霧／無霧照片）
+### 9.1 O-HAZE（45 組室外有霧／無霧照片）
 
 - 官方頁：https://data.vision.ee.ethz.ch/cvl/ntire18/o-haze/
 - 官方頁上的下載連結目前失效（2026-11-01 測試為 404）。可改用同一目錄下的這個網址，它不是官方頁列出的連結：https://data.vision.ee.ethz.ch/cvl/ntire18/o-haze/O-HAZE.zip
@@ -228,7 +271,7 @@ uv run --locked python -B ate_quality.py pairs "D:\data\# O-HAZY NTIRE 2018"
 
 PTE 查表在這 45 組上的比較已經完成（第 1 節）；評估工具不在本 repo，不需要自己重跑。
 
-## 9. 常見問題
+## 10. 常見問題
 
 | 狀況 | 處理方式 |
 |---|---|
@@ -240,7 +283,7 @@ PTE 查表在這 45 組上的比較已經完成（第 1 節）；評估工具不
 | 影像很大時跑很久或記憶體不足 | 先用 1920×1080 以下的影像 |
 | Linux 上 `import cv2` 出現 `libGL.so.1` 錯誤 | 系統缺少圖形函式庫，需要另外安裝（一般經驗，本專案沒有在 Linux 測試過） |
 
-## 10. 回報問題
+## 11. 回報問題
 
 請附上：
 
@@ -249,13 +292,15 @@ PTE 查表在這 45 組上的比較已經完成（第 1 節）；評估工具不
 - repo 的版本：用 git 取得的話附上 `git rev-parse --short HEAD` 的輸出，下載 ZIP 的話附上下載日期
 - 完整指令，以及輸出的最後 20 行
 
-## 11. 檔案說明
+## 12. 檔案說明
 
 | 檔案 | 用途 |
 |---|---|
 | `ate_golden.py` | 軟體 reference：統計路徑、CPU 參數更新、PALA、PTE、SD、影片與靜態排程；預設是浮點，定點要加選項（第 6.2 節） |
 | `ate_pte_lut.py` | PTE 查表的候選版本（B = 8、10），尚未選定；已在 O-HAZE 45 組上和 FX 比較過 |
-| `ate_quality.py` | 畫質評估工具：O-HAZE 的配對檢查與 PSNR／SSIM（選用，需要第 8.1 節的資料集） |
+| `ate_vectors.py` | 產生與檢查第 8 節的測試向量；只呼叫既有的計算函式 |
+| `results/vectors-v0/` | 軟體 v0 的測試向量（第 8 節），9 個文字檔 |
+| `ate_quality.py` | 畫質評估工具：O-HAZE 的配對檢查與 PSNR／SSIM（選用，需要第 9.1 節的資料集） |
 | `pyproject.toml`、`uv.lock`、`.python-version` | 環境設定，請不要修改 |
 
 演算法、符號與數值格式的說明，見組內的《Golden Model 技術說明》。
